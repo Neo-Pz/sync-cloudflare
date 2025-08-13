@@ -1727,7 +1727,7 @@ const router = AutoRouter<IRequest, [env: Env, ctx: ExecutionContext]>({
                                                     <td>{new Date(room.createdAt).toLocaleDateString()}</td>
                                                     <td>
                                                         {(() => {
-                                                            // 将共享、发布、广场分别显示为独立徽标；都无则显示“私有”
+                                                            // 将共享、发布、广场分别显示为独立徽标；都无则显示"私有"
                                                             const badges = []
                                                             const badge = (text, bg, color) => (
                                                                 <span key={text} style={{
@@ -3828,5 +3828,13 @@ const router = AutoRouter<IRequest, [env: Env, ctx: ExecutionContext]>({
 	})
 
 export default {
-	fetch: router.fetch,
+	async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+		const url = new URL(request.url)
+		const host = url.hostname.toLowerCase()
+		if (host === 'iflowone.com' || host === 'www.iflowone.com') {
+			url.hostname = 'board.iflowone.com'
+			return new Response(null, { status: 301, headers: { Location: url.toString() } })
+		}
+		return router.fetch(request, env, ctx)
+	},
 }

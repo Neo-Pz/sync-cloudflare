@@ -8,7 +8,8 @@ upload_source_maps = true
 routes = [
     "iflowone.com/*",
     "www.iflowone.com/*", 
-    "admin.iflowone.com/*"
+    "admin.iflowone.com/*",
+    "board.iflowone.com/*"
 ]
 
 [assets]
