@@ -738,52 +738,40 @@ if (accessType === 'published') {
 
 	// Handle room switching with permission validation
 const handleRoomChange = async (roomId: string, accessType?: 'my' | 'shared' | 'published') => {
-		try {
-			// Load room data to check permissions
-			const room = await roomUtils.getRoom(roomId)
-			
-			if (!room) {
-				console.error('Room not found:', roomId)
-				alert('房间不存在')
-				return
-			}
-			
-			// Check if user has access to this room
-			const isOwner = user && (room.ownerId === user.id || room.owner === user.id)
-			const isPublished = room.publish || room.published || false
-			const isShared = room.shared || room.isShared || false
-			
-			// If not owner and room is neither published nor shared, deny access
-			if (!isOwner && !isPublished && !isShared) {
-				console.warn('Access denied to unpublished/unshared room:', roomId)
-				alert('此房间未发布，无法访问')
-				return
-			}
-			
-			setCurrentRoomId(roomId)
-			
-			// Generate semantic URL based on room metadata and access type
-			const targetUrl = generateSemanticUrl(room, roomId, accessType)
-			
-			// Update URL to reflect new room
-			window.history.pushState({}, '', targetUrl)
-			
-			// Update room last modified time
-			roomUtils.updateRoomLastModified(roomId).catch(error => {
-				console.error('Error updating room last modified time:', error)
-			})
-			
-			// Close room manager after selection
-			setShowRoomManager(false)
-			
-			// Reload the page to switch to the new room
-			window.location.reload()
-			
-		} catch (error) {
-			console.error('Error switching room:', error)
-			alert('切换房间失败')
-		}
-	}
+        try {
+            const room = await roomUtils.getRoom(roomId)
+            if (!room) { console.error('Room not found:', roomId); alert('房间不存在'); return }
+            const isOwner = user && (room.ownerId === user.id || room.owner === user.id)
+            const isPublished = room.publish || room.published || false
+            const isShared = room.shared || room.isShared || false
+            const isPlaza = room.plaza === true
+            // 广场入口：不因共享/发布拦截
+            if (!isOwner && isPlaza) {
+                setCurrentRoomId(roomId)
+                const targetUrl = generateSemanticUrl(room, roomId, accessType ?? (isPublished ? 'published' : undefined))
+                window.history.pushState({}, '', targetUrl)
+                roomUtils.updateRoomLastModified(roomId).catch(error => { console.error('Error updating room last modified time:', error) })
+                setShowRoomManager(false)
+                window.location.reload()
+                return
+            }
+            // 非广场：仅当既未共享也未发布且非房主才拦截
+            if (!isOwner && !isPublished && !isShared) {
+                console.warn('Access denied to unshared/unpublished room:', roomId)
+                alert('此房间未共享，无法访问')
+                return
+            }
+            setCurrentRoomId(roomId)
+            const targetUrl = generateSemanticUrl(room, roomId, accessType)
+            window.history.pushState({}, '', targetUrl)
+            roomUtils.updateRoomLastModified(roomId).catch(error => { console.error('Error updating room last modified time:', error) })
+            setShowRoomManager(false)
+            window.location.reload()
+        } catch (error) {
+            console.error('Error switching room:', error)
+            alert('切换房间失败')
+        }
+    }
 
 	// Handle room creation
 	const handleRoomCreate = (room: Room) => {
