@@ -1,0 +1,41 @@
+
+name = "tldraw-worker"
+main = "worker/worker.ts"
+compatibility_date = "2023-05-18"
+upload_source_maps = true
+
+# Routes for domain binding
+routes = [
+    "iflowone.com/*",
+    "www.iflowone.com/*", 
+    "admin.iflowone.com/*"
+]
+
+[assets]
+directory = "./dist"
+
+[observability]
+enabled = true
+
+# Set up the durable object used for each tldraw room
+[durable_objects]
+bindings = [
+    { name = "TLDRAW_DURABLE_OBJECT", class_name = "TldrawDurableObject" },
+]
+
+# Durable objects require migrations to create/modify/delete them
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["TldrawDurableObject"]
+
+# We store rooms and asset uploads in an R2 bucket
+[[r2_buckets]]
+binding = 'TLDRAW_BUCKET'
+bucket_name = 'tldraw-content'
+preview_bucket_name = 'tldraw-content-preview'
+
+# D1 database for room metadata
+[[d1_databases]]
+binding = "ROOM_DB"
+database_name = "tldraw-db"
+database_id = "6b6f6db8-2406-4ba4-b544-0e20f23c873a"

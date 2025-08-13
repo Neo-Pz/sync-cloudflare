@@ -1,0 +1,142 @@
+/* Mobile responsive styles for tldraw */
+
+/* Global mobile styles */
+@media (max-width: 768px) {
+  /* Hide user presence list on mobile to save space */
+  .tlui-people-menu {
+    display: none !important;
+  }
+  
+  /* Adjust toolbar for mobile */
+  .tlui-toolbar {
+    padding: 4px !important;
+  }
+  
+  .tlui-toolbar__inner {
+    gap: 2px !important;
+  }
+  
+  /* Make buttons more touch-friendly */
+  .tlui-button {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+  
+  /* Adjust menu panels for mobile */
+  .tlui-menu-zone {
+    padding: 8px !important;
+  }
+  
+  /* Fix canvas container for mobile */
+  .tl-canvas {
+    touch-action: none !important;
+  }
+  
+  /* Mobile-specific button positioning */
+  .mobile-controls {
+    position: fixed !important;
+    top: 8px !important;
+    right: 8px !important;
+    z-index: 1000 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    align-items: flex-end !important;
+  }
+  
+  .mobile-controls button {
+    padding: 8px 12px !important;
+    font-size: 14px !important;
+    min-height: 44px !important;
+    min-width: 44px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  }
+  
+  /* Hide some desktop-only elements */
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+  .tl-canvas {
+    -webkit-user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-transform: translateZ(0) !important;
+    transform: translateZ(0) !important;
+  }
+  
+  body {
+    -webkit-text-size-adjust: none !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+  }
+  
+  /* Fix for iOS Safari viewport issues */
+  html {
+    height: -webkit-fill-available !important;
+  }
+  
+  body {
+    min-height: 100vh !important;
+    min-height: -webkit-fill-available !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
+  }
+  
+  #root {
+    min-height: -webkit-fill-available !important;
+    height: 100% !important;
+    position: relative !important;
+  }
+  
+  /* Fix for iOS Safari input zoom */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  textarea {
+    font-size: 16px !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    border-radius: 0 !important;
+  }
+  
+  /* Fix for iOS Safari button appearance */
+  button {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  
+  /* Fix for iOS Safari touch events */
+  * {
+    -webkit-tap-highlight-color: transparent !important;
+  }
+}
+
+/* Tablet landscape adjustments */
+@media (max-width: 1024px) and (orientation: landscape) {
+  .mobile-controls {
+    top: 4px !important;
+    right: 4px !important;
+  }
+}
+
+/* Very small mobile screens */
+@media (max-width: 480px) {
+  .mobile-controls {
+    top: 4px !important;
+    right: 4px !important;
+  }
+  
+  .mobile-controls button {
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+    min-height: 40px !important;
+    min-width: 40px !important;
+  }
+}

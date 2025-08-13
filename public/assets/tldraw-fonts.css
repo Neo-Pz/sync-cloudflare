@@ -1,0 +1,81 @@
+/**
+ * TLDraw本地字体定义
+ * 替代官方CDN字体，使用本地资源
+ */
+
+@font-face {
+    font-family: 'Shantell Sans';
+    src: url('/fonts/Shantell_Sans-Informal_Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Shantell Sans';
+    src: url('/fonts/Shantell_Sans-Normal-SemiBold.woff2') format('woff2');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'IBM Plex Mono';
+    src: url('/fonts/IBMPlexMono-Medium.woff2') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'IBM Plex Sans';
+    src: url('/fonts/IBMPlexSans-Medium.woff2') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Crimson Text';
+    src: url('/fonts/Crimson-Roman.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* TLDraw默认字体堆栈 */
+:root {
+    --tl-font-draw: "Shantell Sans", cursive;
+    --tl-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --tl-font-serif: "Crimson Text", serif;
+    --tl-font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+}
+
+/* 字体预加载提示 */
+.font-preload {
+    font-family: var(--tl-font-draw);
+    font-family: var(--tl-font-sans);
+    font-family: var(--tl-font-serif);
+    font-family: var(--tl-font-mono);
+    opacity: 0;
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+}
+
+/* 为应用添加字体回退机制 */
+body, .tldraw, .tldraw * {
+    font-family: var(--tl-font-sans);
+}
+
+.tl-hand-tool {
+    font-family: var(--tl-font-draw);
+}
+
+.tl-code, .tl-text-code {
+    font-family: var(--tl-font-mono);
+}
+
+.tl-serif {
+    font-family: var(--tl-font-serif);
+}

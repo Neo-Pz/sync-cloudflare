@@ -1,0 +1,145 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap');
+@import url('tldraw/tldraw.css');
+
+body {
+	font-family: 'Inter', sans-serif;
+	overscroll-behavior: none;
+}
+
+/* Clerk form customization */
+/* 不再隐藏用户名字段，遵循 Clerk 两步注册流程 */
+
+/* 优化表单布局，让邮箱和手机号看起来是可选的 */
+.cl-form {
+  gap: 16px;
+}
+
+/* 为邮箱和手机号字段添加"或者"提示 */
+.cl-formFieldRow[data-localization-key="formFieldLabel__emailAddress"]:after {
+  content: " (或者使用手机号)";
+  color: #666;
+  font-size: 12px;
+}
+
+.cl-formFieldRow[data-localization-key="formFieldLabel__phoneNumber"]:after {
+  content: " (或者使用邮箱)";
+  color: #666;
+  font-size: 12px;
+}
+
+/* 移除对 Clerk 模态的全局 pointer-events / z-index 覆盖，避免焦点与 aria-hidden 冲突 */
+
+/* 关键修复：UserButton弹出框 */
+.cl-userButtonPopoverCard {
+    pointer-events: auto !important;
+    position: fixed !important;
+    z-index: 2147483647 !important; /* 最高z-index */
+    background: white !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 8px !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 强制UserButton弹出框内所有元素响应事件 */
+.cl-userButtonPopoverCard,
+.cl-userButtonPopoverCard *,
+.cl-userButtonPopoverCard button,
+.cl-userButtonPopoverCard [role="button"],
+.cl-userButtonPopoverCard [role="menuitem"],
+.cl-userButtonPopoverActionButton,
+.cl-userButtonPopoverActionButtonText,
+.cl-userButtonPopoverActionButtonIcon {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    z-index: inherit !important;
+}
+
+/* 降低对 UserButton 弹出层的强制覆盖，保留默认交互 */
+
+/* 确保UserButton本身不被阻止 */
+.cl-userButton,
+.cl-userButtonTrigger {
+    pointer-events: auto !important;
+    z-index: 2147483647 !important;
+}
+
+/* 移除对弹出层的极端样式，避免焦点问题 */
+
+/* 删除 hover 与宽度强制，交给 Clerk 默认样式 */
+
+/* 顶部UserButton的特殊样式 */
+.cl-userButton {
+    border-radius: 50% !important;
+}
+
+.cl-userButtonTrigger {
+    border-radius: 50% !important;
+    width: 40px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.cl-userButtonAvatarBox {
+    width: 32px !important;
+    height: 32px !important;
+}
+
+.cl-avatar {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+}
+
+/* 还原弹出框定位与层级由 Clerk 控制 */
+
+/* 分享面板事件支持 */
+.share-panel-modal,
+.share-panel-modal * {
+    pointer-events: auto !important;    /* 关键：允许事件 */
+}
+
+/* 浏览模式提醒动画 */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Room settings modal fixes */
+.room-settings-modal {
+  pointer-events: auto !important;
+}
+
+.room-settings-modal * {
+  pointer-events: auto !important;
+}
+
+.room-settings-modal input,
+.room-settings-modal button,
+.room-settings-modal select,
+.room-settings-modal textarea,
+.room-settings-modal label {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  position: relative !important;
+}
+
+/* Overlay z-index fixes */
+.room-settings-modal,
+.share-panel-modal,
+.room-info-modal {
+  z-index: 100000 !important;
+}
+.room-settings-modal > *,
+.share-panel-modal > *,
+.room-info-modal > * {
+  z-index: 100001 !important;
+}

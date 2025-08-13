@@ -1,0 +1,279 @@
+/* Room Page Manager Styles */
+
+/* Trigger button modifications */
+.tlui-page-menu__trigger {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.tlui-page-menu__name {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.tlui-page-menu__actions {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+
+.tlui-trigger-add-room-btn {
+	opacity: 0.6;
+	transition: opacity 0.2s ease;
+}
+
+.tlui-trigger-add-room-btn:hover {
+	opacity: 1;
+	background-color: var(--color-muted-1) !important;
+}
+
+/* Room list container */
+.tlui-rooms-list {
+	max-height: 400px;
+	overflow-y: auto;
+}
+
+/* Room container */
+.tlui-room-container {
+	border-bottom: 1px solid var(--color-divider);
+}
+
+.tlui-room-container:last-child {
+	border-bottom: none;
+}
+
+/* Room header */
+.tlui-room-header {
+	display: flex;
+	align-items: center;
+	padding: 4px 8px;
+	gap: 4px;
+	background-color: var(--color-panel);
+	transition: background-color 0.2s ease;
+}
+
+.tlui-room-header:hover {
+	background-color: var(--color-muted-2);
+}
+
+.tlui-room-expand-toggle {
+	flex-shrink: 0;
+	padding: 2px;
+}
+
+.tlui-room-name-button {
+	flex: 1;
+	min-width: 0;
+	justify-content: flex-start;
+	font-weight: 500;
+}
+
+.tlui-room-name-button.tlui-current-room {
+	background-color: var(--color-selected);
+	color: var(--color-text-1);
+}
+
+.tlui-room-actions {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	opacity: 0.6;
+	transition: opacity 0.2s ease;
+}
+
+.tlui-room-header:hover .tlui-room-actions {
+	opacity: 1;
+}
+
+.tlui-room-edit-btn,
+.tlui-room-add-page-btn {
+	padding: 2px 4px;
+	font-size: 12px;
+}
+
+.tlui-room-edit-btn:hover,
+.tlui-room-add-page-btn:hover {
+	background-color: var(--color-muted-1) !important;
+}
+
+/* Room pages container */
+.tlui-room-pages {
+	background-color: var(--color-low);
+	border-top: 1px solid var(--color-divider);
+}
+
+/* Page items */
+.tlui-page-item {
+	display: flex;
+	align-items: center;
+	padding: 4px 0;
+	gap: 4px;
+	border-bottom: 1px solid var(--color-divider-light);
+}
+
+.tlui-page-item:last-child {
+	border-bottom: none;
+}
+
+.tlui-page-indent {
+	width: 16px;
+	flex-shrink: 0;
+}
+
+.tlui-page-icon {
+	width: 16px;
+	height: 16px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	font-size: 12px;
+}
+
+.tlui-current-page-icon {
+	color: var(--color-accent);
+	font-weight: bold;
+}
+
+.tlui-last-page-icon {
+	color: var(--color-warn);
+}
+
+.tlui-page-document-icon {
+	color: var(--color-text-3);
+}
+
+.tlui-page-name-button {
+	flex: 1;
+	min-width: 0;
+	justify-content: flex-start;
+	font-size: 13px;
+	padding: 4px 8px;
+}
+
+.tlui-page-name-button.tlui-current-page {
+	background-color: var(--color-selected);
+	color: var(--color-text-1);
+	font-weight: 500;
+}
+
+.tlui-other-room-page {
+	opacity: 0.8;
+}
+
+.tlui-other-room-page-button {
+	font-style: italic;
+	color: var(--color-text-2);
+}
+
+.tlui-other-room-page-button:hover {
+	background-color: var(--color-muted-1);
+	color: var(--color-text-1);
+}
+
+.tlui-page-menu-button {
+	opacity: 0;
+	transition: opacity 0.2s ease;
+}
+
+.tlui-page-item:hover .tlui-page-menu-button {
+	opacity: 1;
+}
+
+/* Room placeholder */
+.tlui-room-placeholder {
+	display: flex;
+	align-items: center;
+	padding: 8px 0;
+	gap: 4px;
+}
+
+.tlui-room-placeholder-text {
+	color: var(--color-text-3);
+	font-style: italic;
+	font-size: 12px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+	.tlui-room-header {
+		padding: 6px;
+	}
+	
+	.tlui-page-item {
+		padding: 6px 0;
+	}
+	
+	.tlui-page-name-button {
+		font-size: 12px;
+		padding: 6px;
+	}
+}
+
+/* Focus states for accessibility */
+.tlui-room-expand-toggle:focus,
+.tlui-room-name-button:focus,
+.tlui-room-edit-btn:focus,
+.tlui-room-add-page-btn:focus,
+.tlui-page-name-button:focus {
+	outline: 2px solid var(--color-focus);
+	outline-offset: 2px;
+}
+
+/* Animation for expand/collapse */
+.tlui-room-pages {
+	animation: expand 0.2s ease-out;
+}
+
+@keyframes expand {
+	from {
+		opacity: 0;
+		max-height: 0;
+	}
+	to {
+		opacity: 1;
+		max-height: 200px;
+	}
+}
+
+/* Scrollbar styling */
+.tlui-rooms-list::-webkit-scrollbar {
+	width: 6px;
+}
+
+.tlui-rooms-list::-webkit-scrollbar-track {
+	background: var(--color-low);
+}
+
+.tlui-rooms-list::-webkit-scrollbar-thumb {
+	background: var(--color-text-3);
+	border-radius: 3px;
+}
+
+.tlui-rooms-list::-webkit-scrollbar-thumb:hover {
+	background: var(--color-text-2);
+}
+
+/* 确保弹出层不阻止背景画布的交互 */
+[data-radix-popper-content-wrapper] {
+	pointer-events: none;
+}
+
+[data-radix-popper-content-wrapper] > * {
+	pointer-events: auto;
+}
+
+/* 确保tldraw画布在弹出层打开时仍可交互 */
+.tl-canvas {
+	pointer-events: auto !important;
+}
+
+/* 防止弹出层阻止画布拖拽 */
+body:has([data-state="open"][data-radix-popper-content-wrapper]) .tl-canvas {
+	pointer-events: auto !important;
+	touch-action: none !important;
+}
