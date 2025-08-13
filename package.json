@@ -38,16 +38,16 @@
 	},
 	"dependencies": {
 		"@clerk/clerk-react": "^5.35.0",
-		"@tldraw/sync": "workspace:*",
-		"@tldraw/sync-core": "workspace:*",
-		"@tldraw/tlschema": "workspace:*",
+		"@tldraw/sync": "^3.15.1",
+		"@tldraw/sync-core": "^3.15.1",
+		"@tldraw/tlschema": "^3.15.1",
 		"cloudflare-workers-unfurl": "^0.0.7",
 		"itty-router": "^5.0.18",
 		"lodash.throttle": "^4.1.1",
 		"nanoid": "^5.0.8",
 		"react": "^18.3.1",
 		"react-dom": "^18.3.1",
-		"tldraw": "workspace:*"
+		"tldraw": "^3.15.1"
 	},
 	"devDependencies": {
 		"@cloudflare/vite-plugin": "^1.9.0",
