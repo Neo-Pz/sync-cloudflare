@@ -54,6 +54,9 @@ export function RoomSettings({ isOpen, onClose, roomId, editor }: RoomSettingsPr
   const [tempPlazaRequest, setTempPlazaRequest] = useState(false)
   const [tempShareMode, setTempShareMode] = useState<'live' | 'snapshot'>('live')
   
+  // 广场申请状态
+  const [plazaStatus, setPlazaStatus] = useState<'none' | 'plaza-requests' | 'plaza'>('none')
+  
 
   
   // 使用简化权限管理
@@ -174,6 +177,11 @@ export function RoomSettings({ isOpen, onClose, roomId, editor }: RoomSettingsPr
           setNewRoomName(room.name || '')
           setNewDescription((room as any).description || '')
           setNewTags(Array.isArray((room as any).tags) ? (room as any).tags.join(', ') : '')
+          
+          // 加载广场状态
+          const plazaRequestValue = Boolean((room as any).plaza_request)
+          const plazaValue = Boolean((room as any).plaza)
+          setPlazaStatus(plazaValue ? 'plaza' : (plazaRequestValue ? 'plaza-requests' : 'none'))
         }
         
         // 检查发布申请状态
@@ -183,6 +191,30 @@ export function RoomSettings({ isOpen, onClose, roomId, editor }: RoomSettingsPr
         console.error('Error loading room data:', error)
       }
     }
+
+  // 强制刷新广场状态
+  const refreshPlazaStatus = async () => {
+    if (!roomId) return
+    
+    try {
+      console.log('🔄 强制刷新广场状态...')
+      const cloudRoom = await roomUtils.getRoom(roomId)
+      
+      if (cloudRoom) {
+        // 更新广场状态
+        const plazaRequestValue = Boolean((cloudRoom as any).plaza_request)
+        const plazaValue = Boolean((cloudRoom as any).plaza)
+        setPlazaStatus(plazaValue ? 'plaza' : (plazaRequestValue ? 'plaza-requests' : 'none'))
+        
+        // 更新房间数据
+        setRoomData(cloudRoom)
+        
+        console.log('✅ 广场状态刷新成功:', plazaValue ? '广场中' : (plazaRequestValue ? '申请中' : '无状态'))
+      }
+    } catch (error) {
+      console.warn('❌ 广场状态刷新失败:', error)
+    }
+  }
 
   // Load room data and sync with permission config
   useEffect(() => {
@@ -214,6 +246,11 @@ export function RoomSettings({ isOpen, onClose, roomId, editor }: RoomSettingsPr
       setPublish(permissionConfig.publish || false)
       setPlaza(permissionConfig.plaza || false)
       setPlazaRequest(permissionConfig.plaza_request || false)
+      
+      // 更新广场状态
+      const plazaRequestValue = Boolean(permissionConfig.plaza_request)
+      const plazaValue = Boolean(permissionConfig.plaza)
+      setPlazaStatus(plazaValue ? 'plaza' : (plazaRequestValue ? 'plaza-requests' : 'none'))
       
       // 初始化临时状态为当前值
       setTempPermission(permissionConfig.permission)
@@ -339,6 +376,11 @@ export function RoomSettings({ isOpen, onClose, roomId, editor }: RoomSettingsPr
             // 直接设置广场申请状态，无需审核
             setPlazaRequest(tempPlazaRequest)
             
+            // 更新广场状态
+            const plazaRequestValue = Boolean(tempPlazaRequest)
+            const plazaValue = Boolean(roomData?.plaza)
+            setPlazaStatus(plazaValue ? 'plaza' : (plazaRequestValue ? 'plaza-requests' : 'none'))
+            
             // 同步更新localStorage中的房间数据
             await roomUtils.updateRoom(roomId, { 
               plaza_request: tempPlazaRequest,
@@ -397,6 +439,11 @@ export function RoomSettings({ isOpen, onClose, roomId, editor }: RoomSettingsPr
         setPublish(tempPublish)
         setPlazaRequest(tempPlazaRequest)
         setShareMode(tempShareMode)
+        
+        // 更新广场状态
+        const plazaRequestValue = Boolean(tempPlazaRequest)
+        const plazaValue = Boolean(roomData?.plaza)
+        setPlazaStatus(plazaValue ? 'plaza' : (plazaRequestValue ? 'plaza-requests' : 'none'))
         
         // 保存分享模式到localStorage
         localStorage.setItem(`shareMode_${roomId}`, tempShareMode)
