@@ -231,11 +231,11 @@ export function parseRoute(path: string): ParsedRoute {
     return result
   }
   
-  // Default fallback - redirect to plaza
+  // Default fallback - will be handled by App.tsx root redirect logic
   return {
     type: 'default',
-    roomId: 'plaza-welcome',
-    displayPath: '/plaza/welcome'
+    roomId: 'default-room',
+    displayPath: '/'
   }
 }
 

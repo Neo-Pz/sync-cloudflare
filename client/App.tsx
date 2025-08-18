@@ -179,13 +179,15 @@ function TldrawApp() {
 		const handleRootPathRedirect = async () => {
 			// 只有在根路径时才执行，并且检查是否已经在重定向中
 			const currentPath = window.location.pathname
-			const isRedirecting = sessionStorage.getItem('isRedirecting')
+			
+			// 使用内存标志而不是sessionStorage，以提高iOS兼容性
+			const isRedirecting = (window as any).__isRedirecting
 			
 			if ((currentPath === '/' || currentPath === '') && !isRedirecting && isLoaded) {
 				console.log('🏛️ 检测到根路径访问，准备随机跳转到广场房间...')
 				
 				// 设置重定向标志，防止无限循环
-				sessionStorage.setItem('isRedirecting', 'true')
+				;(window as any).__isRedirecting = true
 				
 				try {
 					// 获取广场房间列表
@@ -209,27 +211,27 @@ function TldrawApp() {
 							
 							console.log('🎲 随机选择广场房间:', selectedRoom.name, '(', selectedRoom.id, ')')
 							
-							// 直接跳转到选中的广场房间
-							window.location.href = `/r/${selectedRoom.id}`
+							// 使用replace避免在历史记录中留下根路径
+							window.location.replace(`${window.location.origin}/r/${selectedRoom.id}`)
 							return
 						} else {
 							console.log('⚠️ 没有找到广场房间，跳转到默认房间')
-							window.location.href = '/r/default-room'
+							window.location.replace(`${window.location.origin}/r/default-room`)
 							return
 						}
 					} else {
 						console.error('❌ 获取广场房间失败，跳转到默认房间')
-						window.location.href = '/r/default-room'
+						window.location.replace(`${window.location.origin}/r/default-room`)
 						return
 					}
 				} catch (error) {
 					console.error('❌ 重定向过程中出错:', error)
 					// 出错时跳转到默认房间
-					window.location.href = '/r/default-room'
+					window.location.replace(`${window.location.origin}/r/default-room`)
 					return
 				} finally {
 					// 移除重定向标志
-					sessionStorage.removeItem('isRedirecting')
+					;(window as any).__isRedirecting = false
 				}
 			}
 		}
@@ -242,7 +244,7 @@ function TldrawApp() {
 		// 清理函数：移除重定向标志
 		return () => {
 			if (window.location.pathname !== '/') {
-				sessionStorage.removeItem('isRedirecting')
+				;(window as any).__isRedirecting = false
 			}
 		}
 	}, [isLoaded])
@@ -265,7 +267,7 @@ function TldrawApp() {
 	}, [roomPermissionData])
 	
 	// Use route room ID if available, otherwise use current room ID
-	const activeRoomId = routeRoomId !== 'shared-room' ? routeRoomId : currentRoomId
+	const activeRoomId = routeRoomId !== 'default-room' ? routeRoomId : currentRoomId
 	const currentRouteType = routeType || 'direct'
 	
 	// 从房间数据加载实际权限
@@ -646,7 +648,7 @@ function TldrawApp() {
 	
 	// Update current room when route changes
 	useEffect(() => {
-		if (routeRoomId !== 'shared-room') {
+		if (routeRoomId !== 'default-room') {
 			setCurrentRoomId(routeRoomId)
 		}
 	}, [routeRoomId])
