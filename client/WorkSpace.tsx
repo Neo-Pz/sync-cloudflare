@@ -454,9 +454,10 @@ export const WorkSpace = memo(function WorkSpace({ currentPermission, roomPermis
 	// 简化的房间历史更新 - 只在关键变化时触发
 	useEffect(() => {
 		if (currentRoomId && pages.length > 0) {
+			// 增加防抖时间，减少频繁更新
 			const timeoutId = setTimeout(() => {
 				updateRoomHistory()
-			}, 300) // 防抖，避免频繁更新
+			}, 500) // 增加到500ms防抖
 			
 			return () => clearTimeout(timeoutId)
 		}
@@ -782,219 +783,164 @@ export const WorkSpace = memo(function WorkSpace({ currentPermission, roomPermis
 		}
 	}, [currentRoomId])
 
-	// 监听房间变化，检查当前房间是否仍然存在，清理已删除的房间，并添加新创建的房间到工作空间
+	// 监听房间变化，统一处理所有房间更新事件
 	useEffect(() => {
 		const handleRoomUpdate = async (event: Event) => {
 			// 安全地转换为CustomEvent
 			const customEvent = event as CustomEvent
-			const { rooms: updatedRooms } = customEvent.detail || {}
+			const { rooms: updatedRooms, roomId, name } = customEvent.detail || {}
 			
-			console.log('Room update event received, checking for new rooms')
+			console.log('WorkSpace: Unified room update event received', { roomId, name, hasRooms: !!updatedRooms })
 			
-			// 检查当前房间是否存在
-			await checkCurrentRoomExists()
-			
-			// 清理已删除的房间
-			await cleanupDeletedRooms()
-			
-			// 如果有更新的房间列表，检查是否有新创建的房间需要添加到工作空间
-			if (updatedRooms && Array.isArray(updatedRooms)) {
-				// 获取当前工作空间中的房间ID列表
-				const workspaceRoomIds = workspaceRooms.map(room => room.name)
-				
-				// 查找不在工作空间中的新房间
-				const newRooms = updatedRooms.filter(room => !workspaceRoomIds.includes(room.id))
-				
-				if (newRooms.length > 0) {
-					console.log('Found new rooms to add to workspace:', newRooms)
+			// 防抖处理，避免频繁更新
+			clearTimeout((window as any)._roomUpdateTimeout)
+			;(window as any)._roomUpdateTimeout = setTimeout(async () => {
+				try {
+					// 检查当前房间是否存在
+					await checkCurrentRoomExists()
 					
-					// 添加新房间到工作空间
-					setRoomHistory(prev => {
-						const updatedHistory = [...prev]
-						
-						for (const newRoom of newRooms) {
-							// 只添加当前用户创建的房间
-							if (user?.id === newRoom.ownerId || user?.id === newRoom.owner) {
-								console.log(`Adding new room to workspace: ${newRoom.name} (${newRoom.id})`)
-								
-								// 创建新的工作空间房间条目
-								const newRoomHistory: RoomHistoryInfo = {
-									name: newRoom.id,
-									displayName: newRoom.name,
-									lastVisited: newRoom.lastModified || Date.now(),
-									isExpanded: true,
-									pages: [], // 页面信息将在访问时填充
-									lastPageName: undefined
+					// 清理已删除的房间
+					await cleanupDeletedRooms()
+					
+					// 处理特定房间的重命名
+					if (roomId && name) {
+						setWorkspaceRooms(prev => {
+							const updated = prev.map(room => {
+								if (room.name === roomId) {
+									console.log(`Updating room display name: ${room.displayName} -> ${name}`)
+									return { ...room, displayName: name }
 								}
-								
-								updatedHistory.push(newRoomHistory)
-							}
+								return room
+							})
+							return updated
+						})
+						// 同步到数据管理器
+						try {
+							await workspaceManager.updateRoom(roomId, { displayName: name })
+						} catch (error) {
+							console.error('Error updating room display name in workspace manager:', error)
 						}
+					}
+					
+					// 处理新房间添加
+					if (updatedRooms && Array.isArray(updatedRooms)) {
+						const currentWorkspaceRoomIds = new Set(workspaceRooms.map(room => room.name))
+						const newRooms = updatedRooms.filter(room => !currentWorkspaceRoomIds.has(room.id))
 						
-						// 按最后访问时间排序
-						updatedHistory.sort((a, b) => b.lastVisited - a.lastVisited)
-						
-						// 更新localStorage
-						localStorage.setItem('roomHistory', JSON.stringify(updatedHistory))
-						
-						return updatedHistory
-					})
+						if (newRooms.length > 0) {
+							console.log('Found new rooms to add to workspace:', newRooms)
+							
+							for (const newRoom of newRooms) {
+								// 只添加当前用户创建的房间
+								if (user?.id === newRoom.ownerId || user?.id === newRoom.owner) {
+									console.log(`Adding new room to workspace: ${newRoom.name} (${newRoom.id})`)
+									
+									const newRoomHistory: RoomHistoryInfo = {
+										name: newRoom.id,
+										displayName: newRoom.name,
+										lastVisited: newRoom.lastModified || Date.now(),
+										isExpanded: true,
+										pages: [],
+										lastPageName: undefined
+									}
+									
+									await workspaceManager.addRoom(newRoomHistory)
+								}
+							}
+							
+							// 重新加载数据
+							loadWorkspaceData()
+						}
+					}
+				} catch (error) {
+					console.error('Error handling room update:', error)
 				}
-			}
+			}, 300) // 300ms 防抖
 		}
 		
 		window.addEventListener('roomsUpdated', handleRoomUpdate)
 		
 		return () => {
 			window.removeEventListener('roomsUpdated', handleRoomUpdate)
+			clearTimeout((window as any)._roomUpdateTimeout)
 		}
-	}, [checkCurrentRoomExists, cleanupDeletedRooms, workspaceRooms, user?.id])
+	}, [checkCurrentRoomExists, cleanupDeletedRooms, workspaceRooms, user?.id, loadWorkspaceData])
 
-	// 点击外部关闭工作空间
+	// 点击外部关闭工作空间 - 添加防抖和更稳定的检测
 	useEffect(() => {
 		if (!isOpen) return
 
 		const handleClickOutside = (event: MouseEvent) => {
 			// 如果房间信息面板已打开，不要关闭工作空间
-			if (roomInfoModal) return
+			if (roomInfoModal || roomSettingsTargetId || roomInfoTarget) return
 			
-			// 检查点击的元素是否在工作空间内部
-			if (workspaceRef.current && !workspaceRef.current.contains(event.target as Node)) {
-				// 检查是否点击在房间信息面板内部
-				const target = event.target as Element
-				if (target && target.closest('.room-info-modal')) {
-					return // 点击在房间信息面板内，不关闭工作空间
+			// 防抖处理，避免因状态更新导致的意外关闭
+			clearTimeout((window as any)._workspaceCloseTimeout)
+			;(window as any)._workspaceCloseTimeout = setTimeout(() => {
+				// 检查点击的元素是否在工作空间内部
+				if (workspaceRef.current && !workspaceRef.current.contains(event.target as Node)) {
+					const target = event.target as Element
+					
+					// 检查是否点击在各种模态框内部
+					if (target && (
+						target.closest('.room-info-modal') ||
+						target.closest('.room-settings-modal') ||
+						target.closest('[data-radix-portal]') || // Radix UI portals
+						target.closest('.tlui-popover') // tldraw popover
+					)) {
+						return // 点击在模态框内，不关闭工作空间
+					}
+					
+					// 点击在工作空间外部，关闭菜单
+					console.log('WorkSpace: Closing due to outside click')
+					onOpenChange(false)
 				}
-				
-				// 点击在工作空间外部，关闭菜单
-				onOpenChange(false)
-			}
+			}, 100) // 100ms 防抖
 		}
 
-		// 添加全局点击监听器
-		document.addEventListener('mousedown', handleClickOutside, true)
+		// 使用延迟添加监听器，确保组件状态稳定
+		const addListenerTimeout = setTimeout(() => {
+			document.addEventListener('mousedown', handleClickOutside, true)
+		}, 50)
 
 		// 清理函数
 		return () => {
+			clearTimeout(addListenerTimeout)
+			clearTimeout((window as any)._workspaceCloseTimeout)
 			document.removeEventListener('mousedown', handleClickOutside, true)
 		}
-	}, [isOpen, onOpenChange, roomInfoModal])
+	}, [isOpen, onOpenChange, roomInfoModal, roomSettingsTargetId, roomInfoTarget])
 
 	// Listen for permission changes and update room data accordingly
 	useEffect(() => {
 		const handlePermissionChange = (event: CustomEvent) => {
-  const { roomId, permission, historyLocked, publish } = event.detail
+			const { roomId, permission, historyLocked, publish } = event.detail
 			
-			// Update the room history if this is the current room
-			setRoomHistory(prev => {
-				return prev.map(room => {
-					if (room.name === roomId) {
-						console.log(`Updated room ${roomId} permission to ${permission}`)
-						// Note: We don't store permission in RoomHistoryInfo, 
-						// but we can trigger a re-render to reflect changes
-						return {
-							...room,
-							lastVisited: Date.now() // Update last visited to trigger UI update
-						}
-					}
-					return room
-				})
-			})
+			console.log(`WorkSpace: Permission changed for room ${roomId}`, { permission, historyLocked, publish })
 			
-			// Also update localStorage to keep workspace in sync
-			const savedHistory = localStorage.getItem('roomHistory')
-			if (savedHistory) {
+			// 防抖处理权限变更，避免频繁更新
+			clearTimeout((window as any)._permissionUpdateTimeout)
+			;(window as any)._permissionUpdateTimeout = setTimeout(async () => {
 				try {
-					const history = JSON.parse(savedHistory)
-					const updatedHistory = history.map((room: RoomHistoryInfo) => {
-						if (room.name === roomId) {
-							return {
-								...room,
-								lastVisited: Date.now()
-							}
-						}
-						return room
-					})
-					localStorage.setItem('roomHistory', JSON.stringify(updatedHistory))
+					// 使用统一的数据管理器更新
+					await workspaceManager.updateRoom(roomId, { lastVisited: Date.now() })
+					
+					// 重新加载工作空间数据以反映权限变更
+					loadWorkspaceData()
 				} catch (error) {
-					console.error('Error updating room history with permission change:', error)
+					console.error('Error updating room after permission change:', error)
 				}
-			}
+			}, 200)
 		}
 
 		window.addEventListener('roomDataChanged', handlePermissionChange as EventListener)
 		
 		return () => {
 			window.removeEventListener('roomDataChanged', handlePermissionChange as EventListener)
+			clearTimeout((window as any)._permissionUpdateTimeout)
 		}
-	}, [])
+	}, [loadWorkspaceData])
 
-	// Listen for room updates (including renames) and update workspace accordingly
-	useEffect(() => {
-		const handleRoomUpdate = (event: Event) => {
-			// Handle roomsUpdated event for room renames and other updates
-			const customEvent = event as CustomEvent
-			const { roomId, name } = customEvent.detail || {}
-			
-			console.log('WorkSpace: Received roomsUpdated event', { roomId, name })
-			
-			// If we have specific room rename info, update it directly
-			if (roomId && name) {
-				setRoomHistory(prev => {
-					const updatedHistory = prev.map(room => {
-						if (room.name === roomId) {
-							console.log(`Updating room display name: ${room.displayName} -> ${name}`)
-							return {
-								...room,
-								displayName: name
-							}
-						}
-						return room
-					})
-					
-					// Update localStorage
-					localStorage.setItem('roomHistory', JSON.stringify(updatedHistory))
-					return updatedHistory
-				})
-			} else {
-				// Fallback: refresh all room data from gallery
-				const refreshRoomData = async () => {
-					try {
-						const galleryRooms = await roomUtils.getAllRooms()
-						const galleryRoomMap = new Map(galleryRooms.map(room => [room.id, room]))
-						
-						setRoomHistory(prev => {
-							const updatedHistory = prev.map(room => {
-								const galleryRoom = galleryRoomMap.get(room.name)
-								if (galleryRoom && galleryRoom.name !== room.displayName) {
-									console.log(`Updating room display name: ${room.displayName} -> ${galleryRoom.name}`)
-									return {
-										...room,
-										displayName: galleryRoom.name
-									}
-								}
-								return room
-							})
-							
-							// Update localStorage
-							localStorage.setItem('roomHistory', JSON.stringify(updatedHistory))
-							return updatedHistory
-						})
-					} catch (error) {
-						console.error('Error refreshing room data:', error)
-					}
-				}
-				
-				refreshRoomData()
-			}
-		}
-
-		window.addEventListener('roomsUpdated', handleRoomUpdate)
-		
-		return () => {
-			window.removeEventListener('roomsUpdated', handleRoomUpdate)
-		}
-	}, [])
 
 	// Helper function to get room permission info for display (simplified)
 	const getRoomPermissionInfo = useCallback(async (roomId: string) => {

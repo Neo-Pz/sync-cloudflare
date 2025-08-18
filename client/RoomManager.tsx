@@ -138,43 +138,51 @@ export function RoomManager({ currentRoomId, onRoomChange, onRoomCreate, onClose
     return user?.id === room.ownerId || user?.id === room.owner
   }, [user])
 
-  // Load rooms from storage
+  // Load rooms from storage with caching and debouncing
   const loadRooms = useCallback(async () => {
     try {
-      const rooms = await roomUtils.getAllRooms()
-      console.log('🔍 RoomManager.loadRooms() 加载的房间:', {
-        totalRooms: rooms.length,
-        roomDetails: rooms.map(room => ({
-          id: room.id,
-          name: room.name,
-          owner: room.ownerName,
-          ownerId: room.ownerId,
-          shared: room.shared,
-          publish: room.publish,
-          plaza: room.plaza,
-          isMyRoom: room.owner === (user?.id || 'anonymous') || room.ownerId === (user?.id || 'anonymous')
-        }))
-      })
-      
-      if (rooms.length === 0) {
-        // Create default room if no rooms exist
-        const userId = user?.id || 'anonymous'
-        // 优先使用邮箱前缀作为用户名
-        const userName = user?.emailAddresses?.[0]?.emailAddress?.split('@')[0] || 
-                         user?.fullName || 
-                         `${user?.firstName || ''} ${user?.lastName || ''}`.trim() ||
-                         user?.username ||
-                         user?.emailAddresses?.[0]?.emailAddress ||
-                         'User'
-        await roomUtils.createDefaultRoomIfNeeded(userId, userName)
-        const updatedRooms = await roomUtils.getAllRooms()
-        setRooms(updatedRooms)
-      } else {
-        setRooms(rooms)
-      }
+      // 防抖处理，避免频繁加载
+      clearTimeout((window as any)._roomManagerLoadTimeout)
+      ;(window as any)._roomManagerLoadTimeout = setTimeout(async () => {
+        try {
+          const rooms = await roomUtils.getAllRooms()
+          console.log('🔍 RoomManager.loadRooms() 加载的房间:', {
+            totalRooms: rooms.length,
+            roomDetails: rooms.map(room => ({
+              id: room.id,
+              name: room.name,
+              owner: room.ownerName,
+              ownerId: room.ownerId,
+              shared: room.shared,
+              publish: room.publish,
+              plaza: room.plaza,
+              isMyRoom: room.owner === (user?.id || 'anonymous') || room.ownerId === (user?.id || 'anonymous')
+            }))
+          })
+          
+          if (rooms.length === 0) {
+            // Create default room if no rooms exist
+            const userId = user?.id || 'anonymous'
+            // 优先使用邮箱前缀作为用户名
+            const userName = user?.emailAddresses?.[0]?.emailAddress?.split('@')[0] || 
+                             user?.fullName || 
+                             `${user?.firstName || ''} ${user?.lastName || ''}`.trim() ||
+                             user?.username ||
+                             user?.emailAddresses?.[0]?.emailAddress ||
+                             'User'
+            await roomUtils.createDefaultRoomIfNeeded(userId, userName)
+            const updatedRooms = await roomUtils.getAllRooms()
+            setRooms(updatedRooms)
+          } else {
+            setRooms(rooms)
+          }
+        } catch (error) {
+          console.error('Error loading rooms:', error)
+          setRooms([])
+        }
+      }, 200) // 200ms 防抖
     } catch (error) {
-      console.error('Error loading rooms:', error)
-      setRooms([])
+      console.error('Error in loadRooms debounce setup:', error)
     }
   }, [user])
 
@@ -215,24 +223,31 @@ export function RoomManager({ currentRoomId, onRoomChange, onRoomCreate, onClose
     console.log('Published rooms:', rooms.filter(room => room.shared === true))
   }, [rooms])
 
-  // Listen for room changes from other components
+  // Listen for room changes from other components with debouncing
   useEffect(() => {
     const handleRoomUpdate = async (event: Event) => {
       // 安全地转换为CustomEvent
       const customEvent = event as CustomEvent
-      console.log('Room update event received:', customEvent.detail)
-      try {
-        const rooms = await roomUtils.getAllRooms()
-        setRooms(rooms)
-      } catch (error) {
-        console.error('Error updating rooms:', error)
-      }
+      console.log('RoomManager: Room update event received:', customEvent.detail)
+      
+      // 防抖处理，避免频繁更新画廊
+      clearTimeout((window as any)._roomManagerUpdateTimeout)
+      ;(window as any)._roomManagerUpdateTimeout = setTimeout(async () => {
+        try {
+          const rooms = await roomUtils.getAllRooms()
+          setRooms(rooms)
+          console.log('RoomManager: Rooms refreshed after update event')
+        } catch (error) {
+          console.error('Error updating rooms in RoomManager:', error)
+        }
+      }, 300) // 300ms 防抖
     }
     
     window.addEventListener('roomsUpdated', handleRoomUpdate)
     
     return () => {
       window.removeEventListener('roomsUpdated', handleRoomUpdate)
+      clearTimeout((window as any)._roomManagerUpdateTimeout)
     }
   }, [])
 
