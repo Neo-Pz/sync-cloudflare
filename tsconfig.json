@@ -17,11 +17,5 @@
 		"noFallthroughCasesInSwitch": true,
 		"types": ["vite/client", "./worker-configuration.d.ts"]
 	},
-	"include": ["client", "worker", "vite.config.ts"],
-	"references": [
-		{ "path": "../../packages/sync" },
-		{ "path": "../../packages/sync-core" },
-		{ "path": "../../packages/tldraw" },
-		{ "path": "../../packages/tlschema" }
-	]
+	"include": ["client", "worker", "vite.config.ts"]
 }
