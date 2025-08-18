@@ -17,9 +17,9 @@ interface UserProfile {
 interface SystemStats {
   totalUsers: number
   totalRooms: number
+  sharedRooms: number
   publishedRooms: number
-  activeUsers: number
-  storageUsed: string
+  plazaRooms: number
 }
 
 interface AdminLog {
@@ -108,17 +108,21 @@ export const AdminDashboard: React.FC = () => {
   const loadStats = async () => {
     try {
       const allRooms = await RoomAPI.getAllRooms()
-      const publishedRooms = allRooms.filter(room => room.published)
       
-      // 模拟用户统计数据
+      // 计算用户统计数据
       const uniqueOwners = new Set(allRooms.map(room => room.ownerId))
+      
+      // 计算各类型房间数量
+      const sharedRooms = allRooms.filter(room => room.shared).length
+      const publishedRooms = allRooms.filter(room => room.published).length
+      const plazaRooms = allRooms.filter(room => room.plaza).length
       
       setStats({
         totalUsers: uniqueOwners.size,
         totalRooms: allRooms.length,
-        publishedRooms: publishedRooms.length,
-        activeUsers: Math.floor(uniqueOwners.size * 0.7), // 模拟活跃用户
-        storageUsed: `${(allRooms.length * 2.5).toFixed(1)} MB`
+        sharedRooms: sharedRooms,
+        publishedRooms: publishedRooms,
+        plazaRooms: plazaRooms
       })
     } catch (error) {
       console.error('Failed to load stats:', error)
@@ -531,24 +535,24 @@ export const AdminDashboard: React.FC = () => {
             {/* 统计卡片 */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500">总用户数</h3>
+                <h3 className="text-sm font-medium text-gray-500">总用户</h3>
                 <p className="text-3xl font-bold text-blue-600">{stats.totalUsers}</p>
               </div>
               <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500">总房间数</h3>
+                <h3 className="text-sm font-medium text-gray-500">总房间</h3>
                 <p className="text-3xl font-bold text-green-600">{stats.totalRooms}</p>
               </div>
               <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500">已发布房间</h3>
+                <h3 className="text-sm font-medium text-gray-500">已共享</h3>
+                <p className="text-3xl font-bold text-orange-600">{stats.sharedRooms}</p>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h3 className="text-sm font-medium text-gray-500">已发布</h3>
                 <p className="text-3xl font-bold text-purple-600">{stats.publishedRooms}</p>
               </div>
               <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500">活跃用户</h3>
-                <p className="text-3xl font-bold text-orange-600">{stats.activeUsers}</p>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-sm font-medium text-gray-500">存储使用</h3>
-                <p className="text-3xl font-bold text-red-600">{stats.storageUsed}</p>
+                <h3 className="text-sm font-medium text-gray-500">广场</h3>
+                <p className="text-3xl font-bold text-red-600">{stats.plazaRooms}</p>
               </div>
             </div>
 

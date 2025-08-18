@@ -9,6 +9,8 @@ export interface SimplePermissionConfig {
   permission: SimplePermission
   shared: boolean
   publish?: boolean
+  plaza?: boolean
+  plaza_request?: boolean
   // 历史锁定状态由权限自动决定，不再单独设置
   historyLocked: boolean
   historyLockTimestamp?: number
@@ -81,6 +83,8 @@ export class SimplePermissionManager {
         permission: room.permission || 'editor',
         shared: room.shared || false,
         publish: room.publish || false,
+        plaza: room.plaza || false,
+        plaza_request: room.plaza_request || false,
         historyLocked: room.historyLocked || false,
         historyLockTimestamp: room.historyLockTimestamp,
         historyLockedBy: room.historyLockedBy,

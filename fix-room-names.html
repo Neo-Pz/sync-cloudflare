@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Room Names</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+        .success { color: green; }
+        .error { color: red; }
+        pre { background: #f5f5f5; padding: 10px; overflow: auto; }
+    </style>
+</head>
+<body>
+    <h1>Fix Room Names</h1>
+    
+    <button onclick="checkRooms()">1. Check Current Rooms</button>
+    <button onclick="fixRoomNames()">2. Fix Empty Room Names</button>
+    <button onclick="testAdminPage()">3. Test Admin Page</button>
+    
+    <div id="result"></div>
+    
+    <script>
+        async function checkRooms() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Checking rooms...</p>';
+            
+            try {
+                const response = await fetch('/api/rooms');
+                const rooms = await response.json();
+                
+                const roomsWithoutNames = rooms.filter(room => !room.name || room.name.trim() === '');
+                
+                resultDiv.innerHTML = `
+                    <h3>Room Check Results:</h3>
+                    <p>Total rooms: ${rooms.length}</p>
+                    <p>Rooms without names: ${roomsWithoutNames.length}</p>
+                    <h4>Sample rooms:</h4>
+                    <pre>${JSON.stringify(rooms.slice(0, 3), null, 2)}</pre>
+                `;
+                
+                if (roomsWithoutNames.length > 0) {
+                    resultDiv.innerHTML += `
+                        <h4>Rooms without names:</h4>
+                        <pre>${JSON.stringify(roomsWithoutNames.slice(0, 5), null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        }
+        
+        async function fixRoomNames() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Fixing room names...</p>';
+            
+            try {
+                // Get rooms without names
+                const response = await fetch('/api/rooms');
+                const rooms = await response.json();
+                
+                const roomsToFix = rooms.filter(room => !room.name || room.name.trim() === '');
+                
+                if (roomsToFix.length === 0) {
+                    resultDiv.innerHTML = '<p class="success">All rooms already have names!</p>';
+                    return;
+                }
+                
+                let fixed = 0;
+                let errors = 0;
+                
+                for (const room of roomsToFix) {
+                    try {
+                        const defaultName = `Room by ${room.ownerName || room.ownerId || 'Unknown'} #${room.id.substring(0, 8)}`;
+                        
+                        const updateResponse = await fetch(`/api/rooms/${room.id}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                name: defaultName
+                            })
+                        });
+                        
+                        if (updateResponse.ok) {
+                            fixed++;
+                        } else {
+                            errors++;
+                            console.error(`Failed to update room ${room.id}:`, await updateResponse.text());
+                        }
+                    } catch (err) {
+                        errors++;
+                        console.error(`Error updating room ${room.id}:`, err);
+                    }
+                }
+                
+                resultDiv.innerHTML = `
+                    <h3>Fix Results:</h3>
+                    <p class="success">Fixed: ${fixed} rooms</p>
+                    <p class="error">Errors: ${errors} rooms</p>
+                    <button onclick="checkRooms()">Check Results</button>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        }
+        
+        function testAdminPage() {
+            window.open('/admin', '_blank');
+        }
+    </script>
+</body>
+</html>

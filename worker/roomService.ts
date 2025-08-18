@@ -23,6 +23,7 @@ export interface Room {
   historyLocked?: boolean
   publish?: boolean  // 是否在发布包中显示
   plaza?: boolean   // 是否在广场显示
+  plaza_request?: boolean  // 是否申请广场 (0=未申请, 1=已申请)
 }
 
 export interface PublishRequest {
@@ -131,8 +132,8 @@ export class RoomService {
       INSERT INTO rooms (
         id, name, created_at, last_modified, owner, owner_id, owner_name,
         is_shared, shared, published, permission, thumbnail, cover_page_id, 
-        publish_status, description, tags, publish, plaza
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        publish_status, description, tags, publish, plaza, plaza_request
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
 
     await stmt.bind(
@@ -153,7 +154,8 @@ export class RoomService {
       room.description || null,
       room.tags ? JSON.stringify(room.tags) : null,
       room.publish ? 1 : 0,
-      0 // plaza 默认为 0
+      0, // plaza 默认为 0
+      0  // plaza_request 默认为 0
     ).run()
 
     return room
@@ -598,7 +600,8 @@ export class RoomService {
       publishNotes: row.publish_notes || undefined,
       historyLocked: Boolean(row.history_locked),
       publish: Boolean(row.publish),
-      plaza: Boolean(row.plaza)
+      plaza: Boolean(row.plaza),
+      plaza_request: Boolean(row.plaza_request)
     }
   }
 
@@ -692,6 +695,24 @@ export class RoomService {
 
     return updatedRoom
   }
+
+  // 更新房间的广场申请状态
+  async updateRoomPlazaRequest(roomId: string, plazaRequest: boolean): Promise<Room> {
+    const existing = await this.getRoom(roomId)
+    if (!existing) {
+      throw new Error(`Room not found: ${roomId}`)
+    }
+
+    const updatedRoom = { ...existing, plaza_request: plazaRequest, lastModified: Date.now() }
+
+    await this.db.prepare(`
+      UPDATE rooms SET plaza_request = ?, last_modified = ?
+      WHERE id = ?
+    `).bind(plazaRequest ? 1 : 0, updatedRoom.lastModified, roomId).run()
+
+    return updatedRoom
+  }
+
 
   // === 用户行为记录相关方法 ===
 

@@ -93,7 +93,7 @@ function adminDashboardHandler() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>流学 管理后台</title>
+    <title>🚀 SITE版本 - 流学 管理后台</title>
     <script crossorigin src="/libs/react.production.min.js"></script>
     <script crossorigin src="/libs/react-dom.production.min.js"></script>  
     <script src="/libs/babel.min.js"></script>
@@ -366,19 +366,23 @@ function adminDashboardHandler() {
                         <div className="stats-grid">
                             <div className="stat-card">
                                 <div className="stat-number">{stats.totalUsers}</div>
-                                <div className="stat-label">总用户数</div>
+                                <div className="stat-label">总用户</div>
                             </div>
                             <div className="stat-card">
                                 <div className="stat-number">{stats.totalRooms}</div>
-                                <div className="stat-label">总房间数</div>
+                                <div className="stat-label">总房间</div>
                             </div>
                             <div className="stat-card">
                                 <div className="stat-number">{stats.sharedRooms}</div>
-                                <div className="stat-label">已共享房间</div>
+                                <div className="stat-label">已共享</div>
                             </div>
                             <div className="stat-card">
-                                <div className="stat-number">{stats.storageUsed}</div>
-                                <div className="stat-label">存储使用</div>
+                                <div className="stat-number">{stats.publishedRooms}</div>
+                                <div className="stat-label">已发布</div>
+                            </div>
+                            <div className="stat-card">
+                                <div className="stat-number">{stats.plazaRooms}</div>
+                                <div className="stat-label">广场</div>
                             </div>
                         </div>
                     )}
@@ -1191,7 +1195,7 @@ const router = AutoRouter<IRequest, [env: Env, ctx: ExecutionContext]>({
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>流学 管理后台</title>
+    <title>🚀 SITE版本 - 流学 管理后台</title>
     <script crossorigin src="/libs/react.production.min.js"></script>
     <script crossorigin src="/libs/react-dom.production.min.js"></script>  
     <script src="/libs/babel.min.js"></script>
@@ -1579,19 +1583,23 @@ const router = AutoRouter<IRequest, [env: Env, ctx: ExecutionContext]>({
                         <div className="stats-grid">
                             <div className="stat-card">
                                 <div className="stat-number">{stats.totalUsers}</div>
-                                <div className="stat-label">总用户数</div>
+                                <div className="stat-label">总用户</div>
                             </div>
                             <div className="stat-card">
                                 <div className="stat-number">{stats.totalRooms}</div>
-                                <div className="stat-label">总房间数</div>
+                                <div className="stat-label">总房间</div>
                             </div>
                             <div className="stat-card">
                                 <div className="stat-number">{stats.sharedRooms}</div>
-                                <div className="stat-label">已共享房间</div>
+                                <div className="stat-label">已共享</div>
                             </div>
                             <div className="stat-card">
-                                <div className="stat-number">{stats.storageUsed}</div>
-                                <div className="stat-label">存储使用</div>
+                                <div className="stat-number">{stats.publishedRooms}</div>
+                                <div className="stat-label">已发布</div>
+                            </div>
+                            <div className="stat-card">
+                                <div className="stat-number">{stats.plazaRooms}</div>
+                                <div className="stat-label">广场</div>
                             </div>
                         </div>
                     )}
@@ -1742,6 +1750,7 @@ const router = AutoRouter<IRequest, [env: Env, ctx: ExecutionContext]>({
                                                             if (room.shared) badges.push(badge('共享', '#d4edda', '#155724'))
                                                             if (room.publish) badges.push(badge('发布', '#d1ecf1', '#0c5460'))
                                                             if (room.plaza) badges.push(badge('广场', '#fff3cd', '#856404'))
+                                                            if (room.plaza_request) badges.push(badge('申请广场', '#fef3c7', '#d97706'))
                                                             if (badges.length === 0) badges.push(badge('私有', '#f8d7da', '#721c24'))
                                                             return <div>{badges}</div>
                                                         })()}
@@ -2084,14 +2093,16 @@ const router = AutoRouter<IRequest, [env: Env, ctx: ExecutionContext]>({
 		try {
 			const allRooms = await roomService.getAllRooms()
 			const sharedRooms = allRooms.filter(room => room.shared)
+			const publishedRooms = allRooms.filter(room => room.published)
+			const plazaRooms = allRooms.filter(room => room.plaza)
 			const uniqueOwners = new Set(allRooms.map(room => room.ownerId))
 			
 			const stats = {
 				totalUsers: uniqueOwners.size,
 				totalRooms: allRooms.length,
 				sharedRooms: sharedRooms.length,
-				activeUsers: Math.floor(uniqueOwners.size * 0.7), // Simulated active users
-				storageUsed: `${(allRooms.length * 2.5).toFixed(1)} MB`
+				publishedRooms: publishedRooms.length,
+				plazaRooms: plazaRooms.length
 			}
 			
 			const origin = request.headers.get('Origin')
@@ -2307,6 +2318,23 @@ const router = AutoRouter<IRequest, [env: Env, ctx: ExecutionContext]>({
 			return createCorsResponse({ error: error.message }, 500, origin)
 		}
 	})
+
+	// User: Set plaza request status
+	.put('/api/rooms/:roomId/plaza-request', async (request, env) => {
+		const roomService = new RoomService(env.ROOM_DB)
+		const origin = request.headers.get('Origin')
+		
+		try {
+			const { roomId } = request.params
+			const { plaza_request } = await request.json()
+			
+			const updatedRoom = await roomService.updateRoomPlazaRequest(roomId, plaza_request)
+			return createCorsResponse(updatedRoom, 200, origin)
+		} catch (error: any) {
+			return createCorsResponse({ error: error.message }, 500, origin)
+		}
+	})
+
 
 	// Admin: Toggle room share status
 	.post('/api/admin/rooms/:roomId/toggle-share', async (request: AdminAuthRequest, env) => {

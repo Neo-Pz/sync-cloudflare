@@ -38,6 +38,7 @@ export interface Room {
   historyLockedByName?: string  // 新增：锁定人姓名
   publish?: boolean  // 是否发布（用于发布白板）
   plaza?: boolean    // 是否设为广场（用于广场白板）
+  plaza_request?: boolean  // 是否申请广场 (false=未申请, true=已申请)
 }
 
 interface RoomManagerProps {

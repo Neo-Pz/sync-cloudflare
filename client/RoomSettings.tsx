@@ -51,6 +51,7 @@ export function RoomSettings({ isOpen, onClose, roomId, editor }: RoomSettingsPr
   const [tempPermission, setTempPermission] = useState<SimplePermission>('viewer')
   const [tempShared, setTempShared] = useState(false)
   const [tempPublish, setTempPublish] = useState(false)
+  const [tempPlazaRequest, setTempPlazaRequest] = useState(false)
   const [tempShareMode, setTempShareMode] = useState<'live' | 'snapshot'>('live')
   
 
@@ -68,6 +69,8 @@ export function RoomSettings({ isOpen, onClose, roomId, editor }: RoomSettingsPr
   const [permission, setPermission] = useState<SimplePermission>('viewer')
   const [shared, setShared] = useState(false)
   const [publish, setPublish] = useState(false)
+  const [plaza, setPlaza] = useState(false)
+  const [plazaRequest, setPlazaRequest] = useState(false)
   
   // 分享模式状态
   const [shareMode, setShareMode] = useState<'live' | 'snapshot'>(() => {
@@ -209,11 +212,14 @@ export function RoomSettings({ isOpen, onClose, roomId, editor }: RoomSettingsPr
       setPermission(permissionConfig.permission)
       setShared(permissionConfig.shared)  // 使用shared字段
       setPublish(permissionConfig.publish || false)
+      setPlaza(permissionConfig.plaza || false)
+      setPlazaRequest(permissionConfig.plaza_request || false)
       
       // 初始化临时状态为当前值
       setTempPermission(permissionConfig.permission)
       setTempShared(permissionConfig.shared)
       setTempPublish(permissionConfig.publish || false)
+      setTempPlazaRequest(permissionConfig.plaza_request || false)
       
       // 从localStorage获取分享模式，默认为live
       const savedMode = localStorage.getItem(`shareMode_${roomId}`)
@@ -311,9 +317,38 @@ export function RoomSettings({ isOpen, onClose, roomId, editor }: RoomSettingsPr
 
     setSaving(true)
     try {
-      console.log('🔄 保存简化权限设置', { roomId, tempPermission, tempShared, tempPublish })
+      console.log('🔄 保存简化权限设置', { roomId, tempPermission, tempShared, tempPublish, tempPlazaRequest })
       
       const success = await updatePermission(tempPermission, tempShared, tempPublish)
+      
+      // 同时更新广场申请状态
+      if (success) {
+        try {
+          const plazaResponse = await fetch(`/api/rooms/${roomId}/plaza-request`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ plaza_request: tempPlazaRequest })
+          })
+          
+          if (!plazaResponse.ok) {
+            console.warn('⚠️ 广场申请状态更新失败')
+          } else {
+            console.log('✅ 广场申请状态更新成功')
+            // 直接设置广场申请状态，无需审核
+            setPlazaRequest(tempPlazaRequest)
+            
+            // 同步更新localStorage中的房间数据
+            await roomUtils.updateRoom(roomId, { 
+              plaza_request: tempPlazaRequest,
+              lastModified: Date.now()
+            })
+          }
+        } catch (error) {
+          console.error('❌ 更新广场申请状态时出错:', error)
+        }
+      }
       
       if (success) {
         console.log('✅ 简化权限设置保存成功')
@@ -329,6 +364,7 @@ export function RoomSettings({ isOpen, onClose, roomId, editor }: RoomSettingsPr
           permission: tempPermission,
           shared: tempShared,
           publish: tempPublish,
+          plaza_request: tempPlazaRequest,
           lastModified: Date.now()
         } : null)
         
@@ -339,6 +375,7 @@ export function RoomSettings({ isOpen, onClose, roomId, editor }: RoomSettingsPr
             permission: tempPermission,
             shared: tempShared,
             publish: tempPublish,
+            plaza_request: tempPlazaRequest,
             lastModified: Date.now()
           } 
         }))
@@ -358,6 +395,7 @@ export function RoomSettings({ isOpen, onClose, roomId, editor }: RoomSettingsPr
         setPermission(tempPermission)
         setShared(tempShared)
         setPublish(tempPublish)
+        setPlazaRequest(tempPlazaRequest)
         setShareMode(tempShareMode)
         
         // 保存分享模式到localStorage
@@ -1184,7 +1222,9 @@ export function RoomSettings({ isOpen, onClose, roomId, editor }: RoomSettingsPr
             </div>
           )}
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+          {/* 三个选项并排显示 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', marginBottom: '1rem' }}>
+            {/* 共享选项 */}
             <label style={{
               display: 'flex',
               alignItems: 'center',
@@ -1218,7 +1258,7 @@ export function RoomSettings({ isOpen, onClose, roomId, editor }: RoomSettingsPr
               </span>
             </label>
             
-            {/* 发布设置 - 直接控制发布 */}
+            {/* 发布选项 */}
             <label style={{
               display: 'flex',
               alignItems: 'center',
@@ -1246,6 +1286,45 @@ export function RoomSettings({ isOpen, onClose, roomId, editor }: RoomSettingsPr
               </span>
               {tempPublish && <span style={{ fontSize: '0.75rem', color: '#10b981' }}>● 已发布</span>}
             </label>
+
+            {/* 广场选项 */}
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              cursor: 'pointer'
+            }}>
+              <input
+                type="checkbox"
+                checked={tempPlazaRequest}
+                onChange={(e) => {
+                  setTempPlazaRequest(e.target.checked)
+                  console.log('广场申请:', e.target.checked ? '已申请' : '未申请')
+                }}
+                style={{
+                  width: '1rem',
+                  height: '1rem'
+                }}
+              />
+              <span style={{ 
+                fontSize: '0.875rem', 
+                color: '#374151', 
+                fontWeight: '500' 
+              }}>
+                广场
+              </span>
+              {tempPlazaRequest && plazaStatus === 'plaza' && (
+                <span style={{ fontSize: '0.75rem', color: '#10b981' }}>
+                  ✅ 广场中
+                </span>
+              )}
+              {tempPlazaRequest && plazaStatus === 'plaza-requests' && (
+                <span style={{ fontSize: '0.75rem', color: '#f59e0b' }}>
+                  ✅ 申请中
+                </span>
+              )}
+            </label>
+          </div>
 
                         {/* 发布内容 - 已发布时显示 */}
             {tempPublish && (
@@ -1419,42 +1498,48 @@ export function RoomSettings({ isOpen, onClose, roomId, editor }: RoomSettingsPr
                 </div>
                 
                 {/* 最后更新时间 */}
-                  <div style={{
-                    fontSize: '0.7rem',
+                <div style={{
+                  fontSize: '0.7rem',
                   color: '#6b7280'
                 }}>
                   最后发布: {roomData?.lastModified ? new Date(roomData.lastModified).toLocaleString() : '尚未发布'}
                 </div>
+              </div>
+            )}
+
+            {/* 统一说明文字 */}
+            <div style={{ fontSize: '0.75rem', color: '#6b7280', lineHeight: '1.4' }}>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <strong>📡 共享：</strong>其他用户可以通过分享链接访问，支持实时协作
+            </div>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <strong>📸 发布：</strong>创建静态展示副本，适合作品发布到 /p/ 路径
+            </div>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <strong>🏛️ 广场：</strong>申请将房间展示在公共广场，其他用户可以发现
+            </div>
+            
+            {/* 动态状态说明 */}
+            {(tempShared || tempPublish || tempPlazaRequest) && (
+              <div style={{ marginTop: '0.75rem', padding: '0.5rem', backgroundColor: '#f8fafc', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontWeight: '500', marginBottom: '0.25rem', color: '#374151' }}>当前状态：</div>
+                {tempShared && (
+                  <div style={{ color: '#059669' }}>📡 共享空间：实时协作，访问路径 /r/</div>
+                )}
+                {tempPublish && (
+                  <div style={{ color: '#7c3aed' }}>📸 发布展示：静态展示，/p/ 路径副本</div>
+                )}
+                {tempPlazaRequest && (
+                  <div style={{ color: '#d97706' }}>
+                    🏛️ 广场：{plazaStatus === 'plaza' ? '已在广场展示' : '申请中，等待展示'}
                   </div>
                 )}
-
-
-          </div>
-          
-          <div style={{ fontSize: '0.75rem', color: '#6b7280', marginLeft: '1.5rem' }}>
-             共享：其他用户可以通过分享链接访问，支持实时协作
-             发布：创建静态展示副本，适合作品发布
-                           {(tempShared || tempPublish) && (
-              <span style={{ display: 'block', marginTop: '0.25rem' }}>
-                  {tempShared && tempPublish ? (
-                    <>
-                      <div>📡 共享空间：实时协作，访问路径仍为 /r/</div>
-                      <div>📸 发布展示：静态展示，/p/ 路径副本</div>
-                      <span style={{ display: 'block', marginTop: '0.25rem', color: '#059669' }}>
-                        🎯 点击上方"更新发布"按钮同步最新内容到 /p/ 路径
-                      </span>
-                    </>
-                  ) : tempShared ? (
-                    '📡 共享空间：实时协作，访问路径仍为 /r/'
-                  ) : tempPublish ? (
-                    <>
-                      <div>📸 发布展示：静态展示，/p/ 路径副本</div>
-                      <span style={{ display: 'block', marginTop: '0.25rem', color: '#059669' }}>
-                        🎯 点击上方"更新发布"按钮同步最新内容到 /p/ 路径
-                      </span>
-                    </>
-                  ) : null}
-              </span>
+                {tempPublish && (
+                  <div style={{ color: '#059669', fontSize: '0.7rem', marginTop: '0.25rem' }}>
+                    💡 提示：点击上方"更新发布"按钮同步最新内容到 /p/ 路径
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

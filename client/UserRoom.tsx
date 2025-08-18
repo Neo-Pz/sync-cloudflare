@@ -64,9 +64,7 @@ interface UserRoomProps {
 
 type ViewMode = 'card' | 'list'
 type SortMode = 'recent' | 'name' | 'created'
-type CategoryMode = 'all' | 'collaboration' | 'interaction' | 'following' | 'followers'
-type CollaborationType = 'created' | 'edited' | 'assisted'
-type InteractionType = 'visited' | 'starred' | 'commented' | 'reported' | 'shared'
+type CategoryMode = 'all' | 'created' | 'starred' | 'following' | 'followers'
 
 export function UserRoom({ currentUserId, targetUserId, onRoomChange, onClose, onShowUserGallery }: UserRoomProps) {
   const { user, isLoaded } = useUser()
@@ -74,8 +72,6 @@ export function UserRoom({ currentUserId, targetUserId, onRoomChange, onClose, o
   const [viewMode, setViewMode] = useState<ViewMode>('card')
   const [sortMode, setSortMode] = useState<SortMode>('recent')
   const [categoryMode, setCategoryMode] = useState<CategoryMode>('all')
-  const [collaborationFilter, setCollaborationFilter] = useState<CollaborationType | 'all'>('all')
-  const [interactionFilter, setInteractionFilter] = useState<InteractionType | 'all'>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [shareRoomId, setShareRoomId] = useState<string | null>(null)
@@ -368,57 +364,15 @@ export function UserRoom({ currentUserId, targetUserId, onRoomChange, onClose, o
     let filtered = userRooms
 
     // Apply category filter
-    if (categoryMode === 'collaboration') {
+    if (categoryMode === 'created') {
       filtered = userRooms.filter(room => 
-        room.relationshipType === 'owner' || room.relationshipType === 'collaborator'
+        room.relationshipType === 'owner' || room.userRole === 'creator'
       )
-      
-      // Apply collaboration sub-filter
-      if (collaborationFilter !== 'all') {
-        filtered = filtered.filter(room => {
-          switch (collaborationFilter) {
-            case 'created':
-              return room.userRole === 'creator'
-            case 'edited':
-              return room.userRole === 'editor'
-            case 'assisted':
-              return room.userRole === 'assistant'
-            default:
-              return true
-          }
-        })
-      }
-    } else if (categoryMode === 'interaction') {
+    } else if (categoryMode === 'starred') {
       filtered = userRooms.filter(room => {
         const interaction = room.interactions[0]
-        if (!interaction) return false
-        
-        return interaction.visited || interaction.starred || 
-               interaction.commented || interaction.shared
+        return interaction && interaction.starred
       })
-      
-      // Apply interaction sub-filter
-      if (interactionFilter !== 'all') {
-        filtered = filtered.filter(room => {
-          const interaction = room.interactions[0]
-          if (!interaction) return false
-          
-          switch (interactionFilter) {
-            case 'visited':
-              return interaction.visited
-            case 'starred':
-              return interaction.starred
-            case 'commented':
-              return interaction.commented
-            case 'reported':
-              return interaction.reported
-            case 'shared':
-              return interaction.shared
-            default:
-              return true
-          }
-        })
-      }
     }
 
     // Apply search
@@ -442,7 +396,7 @@ export function UserRoom({ currentUserId, targetUserId, onRoomChange, onClose, o
           return 0
       }
     })
-  }, [userRooms, categoryMode, collaborationFilter, interactionFilter, searchTerm, sortMode])
+  }, [userRooms, categoryMode, searchTerm, sortMode])
 
   const handleRoomClick = useCallback((roomId: string) => {
     // 优先尝试从本地映射找到发布slug，若存在则在新标签打开发布页；否则进入编辑页
@@ -580,8 +534,8 @@ export function UserRoom({ currentUserId, targetUserId, onRoomChange, onClose, o
         }}>
           {[
             { key: 'all', label: '全部' },
-            { key: 'collaboration', label: '协作' },
-            { key: 'interaction', label: '互动' },
+            { key: 'created', label: '创建' },
+            { key: 'starred', label: '收藏' },
             { key: 'following', label: `关注 (${followStats.followingCount})` },
             { key: 'followers', label: `粉丝 (${followStats.followersCount})` }
           ].map(tab => (
@@ -604,71 +558,6 @@ export function UserRoom({ currentUserId, targetUserId, onRoomChange, onClose, o
           ))}
         </div>
 
-        {/* Sub-filters */}
-        {categoryMode === 'collaboration' && (
-          <div style={{
-            display: 'flex',
-            gap: '0.5rem',
-            marginBottom: '1rem'
-          }}>
-            {[
-              { key: 'all', label: '全部' },
-              { key: 'created', label: '创建' },
-              { key: 'edited', label: '编辑' },
-              { key: 'assisted', label: '辅作' }
-            ].map(filter => (
-              <button
-                key={filter.key}
-                onClick={() => setCollaborationFilter(filter.key as CollaborationType | 'all')}
-                style={{
-                  padding: '0.25rem 0.75rem',
-                  backgroundColor: collaborationFilter === filter.key ? '#10b981' : '#f3f4f6',
-                  color: collaborationFilter === filter.key ? 'white' : '#374151',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '0.75rem',
-                  fontWeight: '500'
-                }}
-              >
-                {filter.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {categoryMode === 'interaction' && (
-          <div style={{
-            display: 'flex',
-            gap: '0.5rem',
-            marginBottom: '1rem'
-          }}>
-            {[
-              { key: 'all', label: '全部' },
-              { key: 'visited', label: '访问过' },
-              { key: 'starred', label: '收藏' },
-              { key: 'commented', label: '评论' },
-              { key: 'shared', label: '分享' }
-            ].map(filter => (
-              <button
-                key={filter.key}
-                onClick={() => setInteractionFilter(filter.key as InteractionType | 'all')}
-                style={{
-                  padding: '0.25rem 0.75rem',
-                  backgroundColor: interactionFilter === filter.key ? '#f59e0b' : '#f3f4f6',
-                  color: interactionFilter === filter.key ? 'white' : '#374151',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '0.75rem',
-                  fontWeight: '500'
-                }}
-              >
-                {filter.label}
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* Controls */}
         <div style={{
@@ -767,7 +656,7 @@ export function UserRoom({ currentUserId, targetUserId, onRoomChange, onClose, o
          )}
         
         {/* 房间列表 */}
-        {(categoryMode === 'all' || categoryMode === 'collaboration' || categoryMode === 'interaction') && (
+        {(categoryMode === 'all' || categoryMode === 'created' || categoryMode === 'starred') && (
           viewMode === 'card' ? (
             <UserRoomCardView 
               userRooms={filteredAndSortedRooms}
@@ -815,8 +704,8 @@ export function UserRoom({ currentUserId, targetUserId, onRoomChange, onClose, o
         fontSize: '0.875rem',
         color: '#6b7280'
       }}>
-        {categoryMode === 'collaboration' && `共 ${filteredAndSortedRooms.length} 个协作房间`}
-        {categoryMode === 'interaction' && `共 ${filteredAndSortedRooms.length} 个互动房间`}
+        {categoryMode === 'created' && `共 ${filteredAndSortedRooms.length} 个创建房间`}
+        {categoryMode === 'starred' && `共 ${filteredAndSortedRooms.length} 个收藏房间`}
         {categoryMode === 'all' && `共 ${filteredAndSortedRooms.length} 个相关房间`}
         {categoryMode === 'following' && `共 ${followingList.length} 个关注用户`}
         {categoryMode === 'followers' && `共 ${followersList.length} 个粉丝`}

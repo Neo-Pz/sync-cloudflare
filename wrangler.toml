@@ -4,13 +4,13 @@ main = "worker/worker.ts"
 compatibility_date = "2023-05-18"
 upload_source_maps = true
 
-# Routes for domain binding
-routes = [
-    "iflowone.com/*",
-    "www.iflowone.com/*", 
-    "admin.iflowone.com/*",
-    "board.iflowone.com/*"
-]
+# Routes for domain binding (commented out for local development)
+# routes = [
+#     "iflowone.com/*",
+#     "www.iflowone.com/*", 
+#     "admin.iflowone.com/*",
+#     "board.iflowone.com/*"
+# ]
 
 [assets]
 directory = "./dist"

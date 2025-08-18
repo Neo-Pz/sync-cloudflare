@@ -14,6 +14,7 @@ export interface Room {
   historyLockedBy?: string
   historyLockedByName?: string
   plaza?: boolean
+  plaza_request?: boolean  // 是否申请广场 (false=未申请, true=已申请)
   description?: string
   tags?: string[]
 }

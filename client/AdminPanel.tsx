@@ -14,6 +14,8 @@ interface Room {
   lastModified: number
   description?: string
   tags?: string[]
+  plaza?: boolean
+  plaza_request?: boolean
 }
 
 interface AdminStats {
@@ -47,9 +49,21 @@ export function AdminPanel() {
   const loadAdminData = async () => {
     setIsLoading(true)
     try {
-      // 加载所有房间
-      const allRooms = await roomUtils.getAllRooms()
+      // 管理员界面直接从Worker API获取最新数据 (绕过代理问题)
+      const response = await fetch('http://localhost:8787/api/rooms')
+      if (!response.ok) {
+        throw new Error(`获取房间数据失败: ${response.status}`)
+      }
+      const allRooms = await response.json()
+      console.log('🏠 AdminPanel 加载房间数据 (直接Worker API):', allRooms)
+      console.log('🔍 Plaza字段检查:', allRooms.map(r => ({
+        id: r.id, 
+        name: r.name, 
+        plaza: r.plaza, 
+        plaza_request: r.plaza_request
+      })))
       setRooms(allRooms)
+
 
       // 计算统计数据
       const publishedCount = allRooms.filter(room => room.published).length
@@ -115,6 +129,7 @@ export function AdminPanel() {
       alert('删除房间失败')
     }
   }
+
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleString('zh-CN')
@@ -188,8 +203,24 @@ export function AdminPanel() {
           alignItems: 'center'
         }}>
           <h1 style={{ margin: 0, color: '#1f2937' }}>🛠️ 管理员后台</h1>
-          <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-            管理员：{user?.fullName || user?.emailAddresses?.[0]?.emailAddress}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <button
+              onClick={loadAdminData}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.875rem'
+              }}
+            >
+              🔄 刷新数据
+            </button>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+              管理员：{user?.fullName || user?.emailAddresses?.[0]?.emailAddress}
+            </div>
           </div>
         </div>
 
@@ -331,119 +362,121 @@ export function AdminPanel() {
         )}
 
         {activeTab === 'rooms' && (
-          <div>
-            <h2 style={{ marginBottom: '1.5rem' }}>🏠 房间管理</h2>
-            
-            <div style={{
-              backgroundColor: 'white',
-              borderRadius: '8px',
-              overflow: 'hidden',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-            }}>
-              {/* 表格头部 */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr',
-                gap: '1rem',
-                padding: '1rem',
-                backgroundColor: '#f9fafb',
-                borderBottom: '1px solid #e5e7eb',
-                fontWeight: '600',
-                fontSize: '0.875rem',
-                color: '#374151'
-              }}>
-                <div>房间名称</div>
-                <div>创建者</div>
-                <div>状态</div>
-                <div>权限</div>
-                <div>创建时间</div>
-                <div>操作</div>
-              </div>
-
-              {/* 房间列表 */}
-              {rooms.map(room => (
-                <div
-                  key={room.id}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr',
-                    gap: '1rem',
-                    padding: '1rem',
-                    borderBottom: '1px solid #f3f4f6',
-                    alignItems: 'center'
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: '500' }}>{room.name}</div>
-                    {room.description && (
-                      <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                        {room.description.length > 50 ? 
-                          room.description.substring(0, 50) + '...' : 
-                          room.description}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ fontSize: '0.875rem' }}>{room.ownerName}</div>
-                  <div>
-                    <span style={{
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '12px',
-                      fontSize: '0.75rem',
-                      backgroundColor: room.published ? '#dcfce7' : '#fee2e2',
-                      color: room.published ? '#166534' : '#991b1b'
-                    }}>
-                      {room.published ? '🌐 已发布' : '🔒 私有'}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '0.875rem' }}>
-                    {(() => {
-                      const permissionInfo: PermissionInfo = {
-                        mode: room.permission,
-                        historyLocked: room.historyLocked,
-                        historyLockTimestamp: room.historyLockTimestamp
-                      }
-                      const formatted = formatPermissionInfo(permissionInfo)
-                      return `${formatted.icon} ${formatted.displayName}`
-                    })()}
-                  </div>
-                  <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                    {formatDate(room.createdAt)}
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button
-                      onClick={() => setSelectedRoom(room)}
-                      style={{
-                        padding: '0.25rem 0.5rem',
-                        backgroundColor: '#3b82f6',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '0.75rem'
-                      }}
-                    >
-                      详情
-                    </button>
-                    <button
-                      onClick={() => handleDeleteRoom(room.id)}
-                      style={{
-                        padding: '0.25rem 0.5rem',
-                        backgroundColor: '#ef4444',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '0.75rem'
-                      }}
-                    >
-                      删除
-                    </button>
-                  </div>
-                </div>
-              ))}
+          <div className="bg-white rounded-lg shadow">
+            <div className="px-6 py-4 border-b">
+              <h3 className="text-lg font-medium text-gray-900">房间管理</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      房间信息
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      创建者
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      状态
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      权限
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      创建时间
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      操作
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {rooms.map(room => (
+                    <tr key={room.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{room.name}</div>
+                          <div className="text-sm text-gray-500">ID: {room.id}</div>
+                          {room.description && (
+                            <div className="text-xs text-gray-400 mt-1">
+                              {room.description.length > 50 ? 
+                                room.description.substring(0, 50) + '...' : 
+                                room.description}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{room.ownerName}</div>
+                        <div className="text-sm text-gray-500">{room.ownerId}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex flex-col space-y-1">
+                          <span className={`px-2 py-1 text-xs rounded-full ${
+                            room.published ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {room.published ? '🌐 已发布' : '🔒 私有'}
+                          </span>
+                          {room.plaza && (
+                            <span className="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">
+                              🏛️ 广场
+                            </span>
+                          )}
+                          {room.plaza_request && (
+                            <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
+                              📝 申请广场
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {(() => {
+                          const permissionInfo: PermissionInfo = {
+                            mode: room.permission,
+                            historyLocked: room.historyLocked,
+                            historyLockTimestamp: room.historyLockTimestamp
+                          }
+                          const formatted = formatPermissionInfo(permissionInfo)
+                          return `${formatted.icon} ${formatted.displayName}`
+                        })()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatDate(room.createdAt)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex flex-col space-y-2">
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => setSelectedRoom(room)}
+                              className="text-blue-600 hover:text-blue-900 text-xs bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded"
+                            >
+                              详情
+                            </button>
+                            <button
+                              onClick={() => handleDeleteRoom(room.id)}
+                              className="text-red-600 hover:text-red-900 text-xs bg-red-100 hover:bg-red-200 px-2 py-1 rounded"
+                            >
+                              删除
+                            </button>
+                          </div>
+                          <a
+                            href={`/r/${room.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-green-600 hover:text-green-900 text-xs bg-green-100 hover:bg-green-200 px-2 py-1 rounded text-center"
+                          >
+                            访问
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
+
 
         {activeTab === 'settings' && (
           <div>
