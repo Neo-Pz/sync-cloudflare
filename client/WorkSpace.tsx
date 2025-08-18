@@ -233,17 +233,24 @@ export const WorkSpace = memo(function WorkSpace({ currentPermission, roomPermis
         setWorkspaceRooms((prev) => updater(prev))
     }, [])
 	const [roomInfoModal, setRoomInfoModal] = useState<Room | null>(null)
-	const [currentRoomName, setCurrentRoomName] = useState<string>('')
+	// 初始化时使用当前房间ID，避免空值造成的显示切换
+	const [currentRoomName, setCurrentRoomName] = useState<string>(currentRoom)
 	
 	// 生成显示用的房间名称/页面索引格式
 	const roomPageDisplay = useMemo(() => {
-		return `${currentRoomName || currentRoom}/p${currentPageIndex}`
+		// 优先显示用户设定的房间名称，如果没有则显示房间ID，避免在加载过程中切换
+		const displayName = currentRoomName || currentRoom
+		return `${displayName}/p${currentPageIndex}`
 	}, [currentRoomName, currentRoom, currentPageIndex])
 	
 	// 统一数据源：从workspaceRooms获取房间显示名称的函数
 	const getRoomDisplayName = useCallback((roomId: string): string => {
+		// 在工作空间数据中查找房间信息
 		const roomInfo = workspaceRooms.find(room => room.name === roomId)
-		return roomInfo?.displayName || roomId // 回退到房间ID
+		if (roomInfo?.displayName && roomInfo.displayName !== roomId) {
+			return roomInfo.displayName // 返回用户设置的显示名称
+		}
+		return roomId // 回退到房间ID，保持一致性
 	}, [workspaceRooms])
 
 	// 加载工作空间数据的函数
@@ -283,9 +290,12 @@ export const WorkSpace = memo(function WorkSpace({ currentPermission, roomPermis
 	// 实时、响应式的UI更新：监听workspaceRooms和currentRoomId变化
 	useEffect(() => {
 		const displayName = getRoomDisplayName(currentRoomId)
-		setCurrentRoomName(displayName)
-		console.log(`Current room name updated: ${currentRoomId} -> ${displayName}`)
-	}, [currentRoomId, getRoomDisplayName])
+		// 只有当显示名称确实不同且不为空时才更新，避免频繁切换
+		if (displayName && displayName !== currentRoomName) {
+			setCurrentRoomName(displayName)
+			console.log(`Current room name updated: ${currentRoomId} -> ${displayName}`)
+		}
+	}, [currentRoomId, getRoomDisplayName, currentRoomName])
 	
 	// 清理工作空间中已删除的房间 - 使用统一数据管理器
 	const cleanupDeletedRooms = useCallback(async () => {
