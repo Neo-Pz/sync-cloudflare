@@ -535,8 +535,8 @@ export const trackComment = (roomId: string, userId: string, userName: string, c
 export const trackShare = (roomId: string, userId: string, userName: string, method: string) => 
   interactionTracker.recordShare(roomId, userId, userName, method)
 
-// 开发环境下导入测试文件
-if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-  import('./roomStatsTest')
-}
+// 开发环境下导入测试文件 (已移除不存在的测试文件)
+// if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+//   import('./roomStatsTest')
+// }
 
