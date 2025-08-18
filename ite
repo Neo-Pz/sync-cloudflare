@@ -1,5 +1,0 @@
-[33mf3a0075[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m fix: allow plaza rooms to be accessible regardless of share; update denial message to 未共享; adjust semantic URL generation
-[33m5a67080[m feat: add board.iflowone.com route and 301 redirect from root domain
-[33mdc3033c[m ci: add build & deploy workflow
-[33m6d3f8d9[m chore: pin tldraw deps to official versions for CI build
-[33maf7ddb5[m init: minimal worker+client for Cloudflare deploy
