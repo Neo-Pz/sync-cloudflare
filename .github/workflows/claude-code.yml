@@ -13,6 +13,11 @@ on:
 jobs:
   claude-code:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      issues: write
+      pull-requests: write
     steps:
       - name: Generate App Token
         id: app-token
@@ -24,4 +29,4 @@ jobs:
       - name: Run Claude Code Action
         uses: anthropics/claude-code-action@v0.0.59
         with:
-          github-token: ${{ steps.app-token.outputs.token }}
+          github_token: ${{ steps.app-token.outputs.token }}
