@@ -33,9 +33,10 @@ jobs:
 
       - name: Run Claude Code Action
         uses: anthropics/claude-code-action@v0.0.59
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          ANTHROPIC_BASE_URL: "https://openrouter.ai/api/v1"
         with:
           github_token: ${{ steps.app-token.outputs.token }}
           trigger_phrase: "@claude"
-          anthropic_api_key: ${{ secrets.OPENROUTER_API_KEY }}
-          anthropic_base_url: "https://openrouter.ai/api/v1"
-          anthropic_model: "anthropic/claude-4-sonnet"
+          model: "anthropic/claude-3.5-sonnet"
